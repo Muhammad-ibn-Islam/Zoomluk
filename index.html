@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
+        /* Скроллбар */
         .log-container::-webkit-scrollbar { width: 4px; }
         .log-container::-webkit-scrollbar-track { background: transparent; }
         .log-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -188,8 +189,8 @@
                     <i data-lucide="monitor" class="w-3 h-3"></i> Экран
                 </div>
 
-                <!-- Ошибка (Обновленный Overlay) -->
-                <div id="errorOverlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center text-white hidden p-6 text-center z-50">
+                <!-- Ошибка (Обновленный Overlay с Z-Index Fix) -->
+                <div id="errorOverlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center text-white hidden p-6 text-center z-[100]">
                     <i data-lucide="wifi-off" class="w-16 h-16 text-red-500 mb-4 animate-pulse"></i>
                     <h3 class="font-bold text-2xl mb-2 text-white">Ошибка подключения</h3>
                     <p id="errorMessage" class="text-slate-300 text-base mb-8 max-w-sm leading-relaxed">
@@ -404,10 +405,11 @@
 
         document.getElementById('clearLogs').onclick = () => logContainer.innerHTML = '<div class="text-slate-600 italic">Журнал очищен</div>';
 
-        // --- PEERJS FIX (Notify user about VPN) ---
+        // --- PEERJS FIX (Universal Error Handler) ---
         function initPeer(targetId = null, retryCount = 0) {
             if (peer && !peer.destroyed) peer.destroy();
             addLog(`Инициализация P2P${retryCount>0?` (Попытка ${retryCount+1})`:''}...`, 'peer');
+            
             const peerConfig = {
                 debug: 1,
                 config: { 
@@ -418,12 +420,15 @@
                     ] 
                 }
             };
+
             try { peer = new Peer(null, peerConfig); } catch(e) { handleError(e); return; }
+            
             peer.on('open', (id) => {
                 meetingId = id; addLog(`ID: ${id}`, 'peer');
                 displayMeetingId.innerText = `ID: ${id}`; btnMeetingInfo.classList.remove('hidden');
                 if (targetId) { addLog(`Соединение с ${targetId}`, 'peer'); connectToPeer(targetId); }
             });
+            
             peer.on('connection', (c) => { conn = c; handleDataConnection(conn); });
             peer.on('call', (incomingCall) => {
                 addLog('Входящий звонок', 'peer');
@@ -437,25 +442,29 @@
                 }
                 handleCallStream(incomingCall);
             });
+
+            // УНИВЕРСАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК
             peer.on('error', (err) => { 
                 console.error(err);
                 addLog(`Peer Error: ${err.type}`, 'err');
                 
-                // === ИСПРАВЛЕННАЯ ЛОГИКА УВЕДОМЛЕНИЯ О VPN ===
-                if (['server-error', 'socket-error', 'network', 'webrtc'].includes(err.type)) {
-                    if (retryCount < 2) { 
-                        const timeout = 2000 * (retryCount + 1);
-                        addLog(`Ошибка сети. Повтор через ${timeout/1000}с...`, 'warn');
-                        setTimeout(() => initPeer(targetId, retryCount + 1), timeout);
-                    } else {
-                        // Показываем пользователю ЧЕТКОЕ окно с ошибкой вместо алерта
-                        const msg = "<b>Сервер соединений недоступен.</b><br><br>Вероятно, он заблокирован вашим провайдером.<br>Для работы видеозвонка необходимо <b>включить VPN</b>.";
-                        errorMessage.innerHTML = msg;
-                        errorOverlay.classList.remove('hidden');
-                        addLog('CRITICAL: Блокировка сети. Требуется VPN.', 'err');
-                    }
-                } else if (err.type === 'peer-unavailable') {
+                // Игнорируем специфические ошибки "User not found", для них alert
+                if (err.type === 'peer-unavailable') {
                     alert('Пользователь с таким ID не найден.');
+                    return;
+                }
+
+                // Для всех остальных ошибок сети (или если тип неизвестен) - показываем Overlay
+                // Это покроет 'server-error', 'socket-error', 'network', 'webrtc', 'ssl-unavailable' и любые другие.
+                if (retryCount < 2) { 
+                    const timeout = 2000 * (retryCount + 1);
+                    addLog(`Сбой связи. Повтор через ${timeout/1000}с...`, 'warn');
+                    setTimeout(() => initPeer(targetId, retryCount + 1), timeout);
+                } else {
+                    const msg = "<b>Ошибка соединения с сервером.</b><br><br>Тип ошибки: " + err.type + "<br><br>Скорее всего, сервер заблокирован провайдером.<br>Пожалуйста, <b>включите VPN</b> и нажмите Обновить.";
+                    errorMessage.innerHTML = msg;
+                    errorOverlay.classList.remove('hidden');
+                    addLog('CRITICAL: Сервер недоступен. Нужен VPN.', 'err');
                 }
             });
         }
