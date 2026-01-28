@@ -188,11 +188,21 @@
                     <i data-lucide="monitor" class="w-3 h-3"></i> Экран
                 </div>
 
+                <!-- Ошибка (Обновленный Overlay) -->
                 <div id="errorOverlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center text-white hidden p-6 text-center z-50">
-                    <i data-lucide="alert-triangle" class="w-10 h-10 text-amber-500 mb-3"></i>
-                    <h3 class="font-bold text-lg mb-2">Ошибка</h3>
-                    <p id="errorMessage" class="text-slate-300 text-sm mb-6 leading-relaxed">Детали</p>
-                    <button onclick="hideError()" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm font-medium">Закрыть</button>
+                    <i data-lucide="wifi-off" class="w-16 h-16 text-red-500 mb-4 animate-pulse"></i>
+                    <h3 class="font-bold text-2xl mb-2 text-white">Ошибка подключения</h3>
+                    <p id="errorMessage" class="text-slate-300 text-base mb-8 max-w-sm leading-relaxed">
+                        Не удалось соединиться с сервером.
+                    </p>
+                    <div class="flex gap-4">
+                        <button onclick="window.location.reload()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition flex items-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Обновить
+                        </button>
+                        <button onclick="hideError()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition">
+                            Закрыть
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -394,11 +404,10 @@
 
         document.getElementById('clearLogs').onclick = () => logContainer.innerHTML = '<div class="text-slate-600 italic">Журнал очищен</div>';
 
-        // --- PEERJS FIX (Retry) ---
+        // --- PEERJS FIX (Notify user about VPN) ---
         function initPeer(targetId = null, retryCount = 0) {
             if (peer && !peer.destroyed) peer.destroy();
             addLog(`Инициализация P2P${retryCount>0?` (Попытка ${retryCount+1})`:''}...`, 'peer');
-            
             const peerConfig = {
                 debug: 1,
                 config: { 
@@ -409,17 +418,12 @@
                     ] 
                 }
             };
-
             try { peer = new Peer(null, peerConfig); } catch(e) { handleError(e); return; }
-            
             peer.on('open', (id) => {
                 meetingId = id; addLog(`ID: ${id}`, 'peer');
                 displayMeetingId.innerText = `ID: ${id}`; btnMeetingInfo.classList.remove('hidden');
                 if (targetId) { addLog(`Соединение с ${targetId}`, 'peer'); connectToPeer(targetId); }
             });
-            
-            // ... (rest of peer handlers)
-
             peer.on('connection', (c) => { conn = c; handleDataConnection(conn); });
             peer.on('call', (incomingCall) => {
                 addLog('Входящий звонок', 'peer');
@@ -433,24 +437,25 @@
                 }
                 handleCallStream(incomingCall);
             });
-
             peer.on('error', (err) => { 
                 console.error(err);
                 addLog(`Peer Error: ${err.type}`, 'err');
                 
-                // Retry logic for connection/server errors
+                // === ИСПРАВЛЕННАЯ ЛОГИКА УВЕДОМЛЕНИЯ О VPN ===
                 if (['server-error', 'socket-error', 'network', 'webrtc'].includes(err.type)) {
                     if (retryCount < 2) { 
                         const timeout = 2000 * (retryCount + 1);
-                        addLog(`Ошибка связи. Повтор через ${timeout/1000}с...`, 'warn');
+                        addLog(`Ошибка сети. Повтор через ${timeout/1000}с...`, 'warn');
                         setTimeout(() => initPeer(targetId, retryCount + 1), timeout);
                     } else {
-                        const msg = 'Не удалось подключиться к серверу PeerJS. Возможно, он заблокирован провайдером. Попробуйте включить VPN.';
-                        addLog(msg, 'err');
-                        alert(msg);
+                        // Показываем пользователю ЧЕТКОЕ окно с ошибкой вместо алерта
+                        const msg = "<b>Сервер соединений недоступен.</b><br><br>Вероятно, он заблокирован вашим провайдером.<br>Для работы видеозвонка необходимо <b>включить VPN</b>.";
+                        errorMessage.innerHTML = msg;
+                        errorOverlay.classList.remove('hidden');
+                        addLog('CRITICAL: Блокировка сети. Требуется VPN.', 'err');
                     }
                 } else if (err.type === 'peer-unavailable') {
-                    alert('Пользователь с таким ID не найден. Проверьте ID.');
+                    alert('Пользователь с таким ID не найден.');
                 }
             });
         }
