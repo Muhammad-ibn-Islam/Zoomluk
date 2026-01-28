@@ -2,14 +2,12 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport для мобильных устройств: запрет зума, адаптация под ширину -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
     <title>Конференц-комната Ultimate (Mobile)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        /* Скроллбар */
         .log-container::-webkit-scrollbar { width: 4px; }
         .log-container::-webkit-scrollbar-track { background: transparent; }
         .log-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -53,17 +51,13 @@
         #lobbyScreen { transition: opacity 0.5s ease-in-out, visibility 0.5s; }
         .hidden-opacity { opacity: 0; visibility: hidden; }
         
-        /* Адаптивная сетка видео */
         .video-grid-1 { grid-template-columns: 1fr; }
-        
-        /* На ПК 2 колонки, на мобильном 2 строки */
         .video-grid-2 { grid-template-columns: 1fr 1fr; }
         @media (max-width: 640px) {
             .video-grid-2 { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
         }
     </style>
 </head>
-<!-- h-[100dvh] - динамическая высота для мобильных браузеров -->
 <body class="bg-slate-100 h-[100dvh] flex flex-col items-center justify-center p-2 sm:p-4 font-sans text-slate-800 overflow-hidden relative">
 
     <!-- ЛОББИ -->
@@ -107,7 +101,7 @@
         </div>
     </div>
 
-    <!-- Основной контейнер (На весь экран мобильного) -->
+    <!-- Основной контейнер -->
     <div class="bg-white w-full max-w-6xl h-full sm:h-[90vh] sm:rounded-2xl shadow-xl overflow-hidden flex flex-col relative z-10">
         
         <!-- Шапка -->
@@ -162,6 +156,15 @@
                 <!-- Удаленное -->
                 <div id="remoteVideoContainer" class="relative w-full h-full bg-slate-800 rounded sm:rounded-lg overflow-hidden flex items-center justify-center hidden">
                     <video id="remoteVideo" class="w-full h-full object-cover" autoplay playsinline></video>
+                    
+                    <!-- Кнопка ручного запуска для обхода блокировки автоплея -->
+                    <button id="btnPlayRemote" onclick="playRemoteVideo()" class="hidden absolute inset-0 z-20 flex items-center justify-center bg-black/50 text-white font-bold hover:bg-black/70 transition-colors">
+                        <div class="bg-indigo-600 p-4 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
+                            <i data-lucide="play" class="w-6 h-6 fill-current"></i> 
+                            <span>Нажмите, чтобы видеть</span>
+                        </div>
+                    </button>
+
                     <div id="remotePlaceholder" class="text-slate-500 flex flex-col items-center z-10">
                         <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-700 flex items-center justify-center mb-3">
                             <i data-lucide="user" class="w-8 h-8 sm:w-10 sm:h-10 text-slate-400"></i>
@@ -185,7 +188,6 @@
                     <i data-lucide="monitor" class="w-3 h-3"></i> Экран
                 </div>
 
-                <!-- Ошибка -->
                 <div id="errorOverlay" class="absolute inset-0 bg-black/95 flex flex-col items-center justify-center text-white hidden p-6 text-center z-50">
                     <i data-lucide="alert-triangle" class="w-10 h-10 text-amber-500 mb-3"></i>
                     <h3 class="font-bold text-lg mb-2">Ошибка</h3>
@@ -194,7 +196,7 @@
                 </div>
             </div>
 
-            <!-- Чат (Адаптивный: w-full на мобильном, w-80 на ПК) -->
+            <!-- Чат -->
             <div id="chatSidebar" class="absolute right-0 top-0 bottom-0 w-full sm:w-80 bg-white shadow-2xl border-l border-slate-200 transform translate-x-full flex flex-col z-40 transition-transform duration-300">
                 <div class="p-3 sm:p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                     <h3 class="font-bold text-slate-700 flex items-center gap-2">
@@ -235,13 +237,10 @@
                     <i data-lucide="power" class="w-5 h-5"></i>
                 </button>
                 <div class="w-px h-10 bg-slate-300 mx-1 hidden sm:block"></div>
-                
                 <button id="btnMic" class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-slate-200 text-slate-400 cursor-not-allowed transition" disabled><i data-lucide="mic" class="w-5 h-5"></i></button>
                 <button id="btnCam" class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-slate-200 text-slate-400 cursor-not-allowed transition" disabled><i data-lucide="video" class="w-5 h-5"></i></button>
                 <button id="btnShare" class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-600 transition group hidden sm:flex" title="Экран"><i data-lucide="monitor-up" class="w-5 h-5"></i></button>
-                
                 <div class="w-px h-10 bg-slate-300 mx-1 hidden sm:block"></div>
-                
                 <button id="btnRecord" class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-full bg-slate-200 text-slate-400 cursor-not-allowed transition group" title="Запись" disabled>
                     <div class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-current group-hover:scale-110"></div>
                 </button>
@@ -260,7 +259,7 @@
                 </button>
             </div>
 
-            <!-- Настройки (Скрываются в аккордеон или скролл) -->
+            <!-- Настройки -->
             <div id="deviceSettings" class="hidden w-full max-w-4xl grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 pt-2 border-t border-slate-200 animate-in slide-in-from-top-2 duration-300">
                 <div class="relative"><div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="mic" class="h-4 w-4 text-slate-400"></i></div><select id="audioSource" class="block w-full pl-9 pr-8 py-2 text-xs sm:text-sm border-slate-300 focus:ring-indigo-500 rounded-lg bg-white shadow-sm appearance-none border text-slate-700 truncate"><option value="" disabled selected>Микрофоны...</option></select></div>
                 <div class="relative"><div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="video" class="h-4 w-4 text-slate-400"></i></div><select id="videoSource" class="block w-full pl-9 pr-8 py-2 text-xs sm:text-sm border-slate-300 focus:ring-indigo-500 rounded-lg bg-white shadow-sm appearance-none border text-slate-700 truncate"><option value="" disabled selected>Камеры...</option></select></div>
@@ -268,7 +267,7 @@
             </div>
         </div>
 
-        <!-- Логи (Скрыты на совсем мелких экранах) -->
+        <!-- Логи -->
         <div class="bg-slate-900 text-slate-300 p-2 sm:p-4 font-mono text-[10px] sm:text-xs w-full h-24 sm:h-32 overflow-hidden flex flex-col shrink-0">
             <div class="flex justify-between items-center mb-1">
                 <span class="uppercase tracking-wider font-bold text-slate-500">Система</span>
@@ -290,6 +289,7 @@
         const chromaCanvas = document.getElementById('chromaCanvas');
         const remoteVideo = document.getElementById('remoteVideo');
         const remoteVideoContainer = document.getElementById('remoteVideoContainer');
+        const btnPlayRemote = document.getElementById('btnPlayRemote');
         const videoGrid = document.getElementById('videoGrid');
         const remotePlaceholder = document.getElementById('remotePlaceholder');
         const placeholder = document.getElementById('placeholder');
@@ -394,25 +394,16 @@
 
         document.getElementById('clearLogs').onclick = () => logContainer.innerHTML = '<div class="text-slate-600 italic">Журнал очищен</div>';
 
-        // --- PEERJS (Fix: STUN Servers + Autoplay) ---
+        // --- PEERJS ---
         function initPeer(targetId = null) {
             addLog('Инициализация P2P...', 'peer');
-            // Конфигурация с STUN серверами
             const peerConfig = {
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
+                config: { iceServers: [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' } ] }
             };
             peer = new Peer(peerConfig);
-            
             peer.on('open', (id) => {
-                meetingId = id;
-                addLog(`ID: ${id}`, 'peer');
-                displayMeetingId.innerText = `ID: ${id}`;
-                btnMeetingInfo.classList.remove('hidden');
+                meetingId = id; addLog(`ID: ${id}`, 'peer');
+                displayMeetingId.innerText = `ID: ${id}`; btnMeetingInfo.classList.remove('hidden');
                 if (targetId) { addLog(`Соединение с ${targetId}`, 'peer'); connectToPeer(targetId); }
             });
             peer.on('connection', (c) => { conn = c; handleDataConnection(conn); });
@@ -449,31 +440,28 @@
         function handleCallStream(callSession) {
             call = callSession;
             call.on('stream', (remoteStream) => {
-                // Избегаем повторного присваивания, если поток тот же
                 if (remoteVideo.srcObject === remoteStream) return;
-
                 addLog('Получен удаленный поток', 'peer');
                 remoteVideo.srcObject = remoteStream;
-                
-                // Принудительный play для обхода блокировок браузера
-                remoteVideo.play().catch(e => addLog(`Ошибка автоплея: ${e.message}`, 'warn'));
-
+                playRemoteVideo(); // Пытаемся запустить
                 remoteVideoContainer.classList.remove('hidden');
                 remotePlaceholder.classList.add('hidden');
-                videoGrid.classList.remove('video-grid-1');
-                videoGrid.classList.add('video-grid-2');
+                videoGrid.classList.remove('video-grid-1'); videoGrid.classList.add('video-grid-2');
             });
-            
-            // Логируем состояние ICE для отладки
-            call.peerConnection.oniceconnectionstatechange = () => {
-                addLog(`P2P статус: ${call.peerConnection.iceConnectionState}`, 'peer');
-            };
-
+            call.peerConnection.oniceconnectionstatechange = () => { addLog(`P2P статус: ${call.peerConnection.iceConnectionState}`, 'peer'); };
             call.on('close', () => {
                 addLog('Отключено', 'peer');
                 remoteVideoContainer.classList.add('hidden');
-                videoGrid.classList.remove('video-grid-2');
-                videoGrid.classList.add('video-grid-1');
+                videoGrid.classList.remove('video-grid-2'); videoGrid.classList.add('video-grid-1');
+            });
+        }
+
+        function playRemoteVideo() {
+            remoteVideo.play().then(() => {
+                btnPlayRemote.classList.add('hidden');
+            }).catch(e => {
+                addLog(`Автоплей блокирован: ${e.message}`, 'warn');
+                btnPlayRemote.classList.remove('hidden'); // Показываем кнопку
             });
         }
 
@@ -485,130 +473,38 @@
 
         function copyMeetingId() {
             navigator.clipboard.writeText(meetingId).then(() => {
-                addLog('ID скопирован', 'info');
-                const orig = displayMeetingId.innerText; displayMeetingId.innerText = "Скопировано!";
-                setTimeout(() => displayMeetingId.innerText = orig, 2000);
+                addLog('ID скопирован', 'info'); const orig = displayMeetingId.innerText; displayMeetingId.innerText = "Скопировано!"; setTimeout(() => displayMeetingId.innerText = orig, 2000);
             });
         }
 
-        // --- LOBBY ---
-        function handleAvatarUpload(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    userAvatarUrl = e.target.result;
-                    lobbyAvatarImg.src = userAvatarUrl; lobbyAvatarImg.classList.remove('hidden'); lobbyAvatarInitial.classList.add('hidden');
-                    mainAvatarImg.src = userAvatarUrl; mainAvatarImg.classList.remove('hidden'); mainAvatarInitial.classList.add('hidden');
-                }; reader.readAsDataURL(input.files[0]);
-            }
-        }
-        function updateInitial(val) {
-            if (!val) { lobbyAvatarInitial.textContent = "?"; mainAvatarInitial.textContent = "?"; } 
-            else { const c = val.charAt(0).toUpperCase(); lobbyAvatarInitial.textContent = c; mainAvatarInitial.textContent = c; }
-        }
-        function joinMeeting() {
-            const val = nameInput.value.trim(); if (val) userName = val; mainUserName.textContent = userName;
-            lobbyScreen.classList.add('hidden-opacity');
-            initPeer(meetingIdInput.value.trim() || null);
-        }
-
-        // --- CHAT ---
-        function toggleChat() {
-            isChatOpen = !isChatOpen;
-            if (isChatOpen) { 
-                chatSidebar.classList.remove('translate-x-full'); chatBadge.classList.add('hidden'); 
-                btnChat.classList.add('bg-indigo-100', 'text-indigo-600'); 
-                setTimeout(() => chatInput.focus(), 300); 
-            } else { 
-                chatSidebar.classList.add('translate-x-full'); 
-                btnChat.classList.remove('bg-indigo-100', 'text-indigo-600'); 
-            }
-        }
-        btnChat.onclick = toggleChat;
-        chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-        function handleFileSelect(input) { if (input.files[0]) { selectedFile = input.files[0]; filePreviewArea.classList.remove('hidden'); previewFileName.textContent = selectedFile.name; if(!isChatOpen) toggleChat(); } }
-        function clearFileSelection() { selectedFile = null; chatFileInput.value = ''; filePreviewArea.classList.add('hidden'); }
-        
-        function sendMessage() {
-            const text = chatInput.value.trim(); if (!text && !selectedFile) return;
-            const data = { type: 'chat', sender: userName, text: text, time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}), file: null };
-            if (selectedFile) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    data.file = { name: selectedFile.name, type: selectedFile.type, data: e.target.result };
-                    finalizeSendMessage(data);
-                }; reader.readAsDataURL(selectedFile);
-            } else { finalizeSendMessage(data); }
-        }
-        function finalizeSendMessage(data) {
-            if (conn && conn.open) conn.send(data); else if(meetingId && !conn) addLog('Нет подключения к чату', 'warn');
-            renderMessage(data, true); chatInput.value = ''; clearFileSelection();
-        }
-        function receiveMessage(data) { renderMessage(data, false); if (!isChatOpen) chatBadge.classList.remove('hidden'); }
-        function renderMessage(data, isMe) {
-            const msgDiv = document.createElement('div'); msgDiv.className = `flex flex-col ${isMe?'items-end':'items-start'} animate-in slide-in-from-bottom-2 duration-300`;
-            const contentDiv = document.createElement('div'); contentDiv.className = `${isMe?'bg-indigo-600 text-white rounded-tr-none':'bg-white text-slate-800 border border-slate-200 rounded-tl-none'} rounded-2xl px-3 py-2 max-w-[90%] shadow-sm text-sm break-words`;
-            if(!isMe) contentDiv.innerHTML += `<div class="text-[10px] text-indigo-500 mb-1 font-bold">${data.sender}</div>`;
-            if(data.file) {
-                const isImg = data.file.type.startsWith('image');
-                if(isImg) contentDiv.innerHTML += `<img src="${data.file.data}" class="rounded-lg max-h-32 object-cover cursor-pointer mb-1" onclick="window.open(this.src)">`;
-                else contentDiv.innerHTML += `<a href="${data.file.data}" download="${data.file.name}" class="flex items-center gap-1 underline text-xs"><i data-lucide="file" class="w-3 h-3"></i> ${data.file.name}</a>`;
-            }
-            if(data.text) contentDiv.innerHTML += `<span>${data.text}</span>`;
-            msgDiv.appendChild(contentDiv);
-            msgDiv.innerHTML += `<div class="text-[9px] text-slate-400 mt-0.5 mx-1">${data.time}</div>`;
-            chatMessages.appendChild(msgDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
-            lucide.createIcons();
-        }
-
-        // --- CHROMA ---
-        function toggleChroma() {
-            if (isScreenSharing) return; if(isRecording) stopRecording();
-            isChromaActive = !isChromaActive;
-            if (isChromaActive) { btnChroma.classList.replace('text-slate-400','text-emerald-600'); btnChroma.classList.replace('bg-slate-200','bg-emerald-100'); chromaIndicator.classList.remove('hidden'); startChromaProcessing(); } 
-            else { btnChroma.classList.replace('text-emerald-600','text-slate-400'); btnChroma.classList.replace('bg-emerald-100','bg-slate-200'); chromaIndicator.classList.add('hidden'); stopChromaProcessing(); }
-        }
-        function startChromaProcessing() {
-            if (!localStream) return;
-            const w = 320; const h = 180; chromaCanvas.width = w; chromaCanvas.height = h;
-            const ctx = chromaCanvas.getContext('2d', { willReadFrequently: true });
-            const bgG = ctx.createLinearGradient(0,0,0,h); bgG.addColorStop(0,'#e2e8f0'); bgG.addColorStop(1,'#94a3b8');
-            const loop = () => {
-                if (!isChromaActive) return;
-                if (rawVideo.readyState === 0) { chromaAnimationFrameId = requestAnimationFrame(loop); return; }
-                ctx.fillStyle = bgG; ctx.fillRect(0,0,w,h);
-                ctx.drawImage(rawVideo, 0, 0, w, h);
-                const frame = ctx.getImageData(0,0,w,h); const l = frame.data.length / 4;
-                for (let i=0; i<l; i++) {
-                    const r=frame.data[i*4], g=frame.data[i*4+1], b=frame.data[i*4+2];
-                    if (g>100 && g>r*1.4 && g>b*1.4) frame.data[i*4+3] = 0;
-                }
-                ctx.fillStyle = bgG; ctx.fillRect(0,0,w,h); ctx.putImageData(frame,0,0);
-                chromaAnimationFrameId = requestAnimationFrame(loop);
-            };
-            chromaAnimationFrameId = requestAnimationFrame(loop);
-            const cs = chromaCanvas.captureStream(30); if(localStream.getAudioTracks().length) cs.addTrack(localStream.getAudioTracks()[0]);
-            videoElement.srcObject = cs; chromaStream = cs;
-        }
-        function stopChromaProcessing() { if(chromaAnimationFrameId) cancelAnimationFrame(chromaAnimationFrameId); if(localStream) videoElement.srcObject = localStream; chromaStream = null; }
-
-        // --- UTILS ---
-        function playShutterSound() { try{const c=new(window.AudioContext||window.webkitAudioContext);const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='square';o.frequency.setValueAtTime(800,c.currentTime);g.gain.setValueAtTime(0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.1);o.start();o.stop(c.currentTime+0.1);}catch(e){} }
-        async function takeSnapshot() { if(!videoElement.srcObject) return; playShutterSound(); flashOverlay.classList.add('flash-effect'); setTimeout(()=>flashOverlay.classList.remove('flash-effect'), 500); const c = document.createElement('canvas'); c.width = videoElement.videoWidth; c.height = videoElement.videoHeight; const ctx = c.getContext('2d'); ctx.save(); if(videoElement.classList.contains('video-mirror')){ ctx.translate(c.width,0); ctx.scale(-1,1); } if(currentFilter!=='none') ctx.filter = getComputedStyle(videoElement).filter; ctx.drawImage(videoElement,0,0); ctx.restore(); const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `snap_${Date.now()}.png`; a.click(); }
-        
-        filterSelect.addEventListener('change', (e) => { currentFilter = e.target.value; videoElement.className = `w-full h-full object-cover transition-all duration-300 ${!isScreenSharing?'video-mirror':'video-normal'} filter-${currentFilter}`; });
-        async function togglePip() { try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (document.pictureInPictureEnabled && videoElement.srcObject) await videoElement.requestPictureInPicture(); } catch(e){} }
-        
-        function toggleRecording() { isRecording ? stopRecording() : startRecording(); }
-        function startRecording() { const s = isChromaActive ? chromaStream : (isScreenSharing ? screenStream : localStream); if(!s) return; recordedChunks=[]; mediaRecorder=new MediaRecorder(s); mediaRecorder.ondataavailable=e=>{if(e.data.size>0)recordedChunks.push(e.data)}; mediaRecorder.onstop=saveRecording; mediaRecorder.start(); isRecording=true; recordingIndicator.classList.remove('hidden'); btnRecord.classList.add('text-red-600','bg-red-100'); recordStartTime=Date.now(); recordInterval=setInterval(updateTimer,1000); }
-        function stopRecording() { if(mediaRecorder) mediaRecorder.stop(); isRecording=false; recordingIndicator.classList.add('hidden'); btnRecord.classList.remove('text-red-600','bg-red-100'); clearInterval(recordInterval); }
-        function saveRecording() { const b=new Blob(recordedChunks,{type:'video/webm'}); if(b.size===0)return; const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=`rec_${Date.now()}.webm`; a.click(); }
-        function updateTimer() { const d=Date.now()-recordStartTime; const m=Math.floor(d/60000); const s=Math.floor((d%60000)/1000); recTimer.textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
-
-        // --- CORE ---
+        // --- DEVICES FIX ---
         async function getConnectedDevices() { 
-            const devs=await navigator.mediaDevices.enumerateDevices(); audioSelect.innerHTML='<option disabled>Микрофоны...</option>'; videoSelect.innerHTML='<option disabled>Камера...</option>';
-            devs.forEach(d=>{ const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||d.kind; if(d.kind==='audioinput') audioSelect.appendChild(o); else if(d.kind==='videoinput') videoSelect.appendChild(o); });
+            const devs = await navigator.mediaDevices.enumerateDevices();
+            // Сохраняем текущий выбор
+            const currentAudio = audioSelect.value;
+            const currentVideo = videoSelect.value;
+
+            // Очищаем, но не полностью (оставляем заголовок)
+            audioSelect.innerHTML = '<option value="" disabled>Микрофоны...</option>'; 
+            videoSelect.innerHTML = '<option value="" disabled>Камеры...</option>';
+            
+            devs.forEach(d=>{ 
+                const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||d.kind; 
+                if(d.kind==='audioinput') audioSelect.appendChild(o); 
+                else if(d.kind==='videoinput') videoSelect.appendChild(o); 
+            });
+
+            // Восстанавливаем выбор или выбираем активный трек
+            if (localStream) {
+                const at = localStream.getAudioTracks()[0];
+                const vt = localStream.getVideoTracks()[0];
+                if (at && at.getSettings().deviceId) audioSelect.value = at.getSettings().deviceId;
+                else if (currentAudio) audioSelect.value = currentAudio;
+
+                if (vt && vt.getSettings().deviceId) videoSelect.value = vt.getSettings().deviceId;
+                else if (currentVideo) videoSelect.value = currentVideo;
+            }
+            
             deviceSettings.classList.remove('hidden'); deviceSettings.classList.add('grid');
         }
         
@@ -618,6 +514,7 @@
         }
         audioSelect.onchange=switchDevice; videoSelect.onchange=switchDevice;
 
+        // --- CORE ---
         function gotStream(stream) {
             localStream = stream; rawVideo.srcObject = stream; rawVideo.play().catch(e=>{});
             videoElement.srcObject = stream; isVideoEnabled = true; videoElement.classList.remove('hidden'); placeholder.classList.add('hidden');
@@ -631,59 +528,39 @@
             catch(e) { handleError(e); } finally { btnPower.disabled=false; }
         }
 
-        function stopConference() {
-            if(isRecording) stopRecording(); if(isChromaActive) stopChromaProcessing(); if(isScreenSharing) stopScreenShare();
-            if(localStream) localStream.getTracks().forEach(t=>t.stop()); if(call) call.close(); 
-            stopAudioVisualizer(); localStream=null; videoElement.srcObject=null; isStreamActive=false; 
-            deviceSettings.classList.add('hidden'); deviceSettings.classList.remove('grid'); updateUIState(false);
-        }
-
-        async function toggleScreenShare() {
-            if(isScreenSharing) { stopScreenShare(true); return; }
-            try { screenStream=await navigator.mediaDevices.getDisplayMedia({video:true}); isScreenSharing=true; videoElement.srcObject=screenStream; videoElement.classList.replace('video-mirror','video-normal'); screenStream.getVideoTracks()[0].onended=()=>stopScreenShare(true); updateControlButtons(); }
-            catch(e){ handleError(e); }
-        }
-        function stopScreenShare(restore) { 
-            if(screenStream) screenStream.getTracks().forEach(t=>t.stop()); isScreenSharing=false; videoElement.classList.replace('video-normal','video-mirror');
-            if(restore && localStream) videoElement.srcObject=localStream; updateControlButtons();
-        }
-
-        function initAudioVisualizer(stream) {
-            if(!stream.getAudioTracks().length) return;
-            if(audioContext) audioContext.close(); audioContext=new(window.AudioContext||window.webkitAudioContext)();
-            analyser=audioContext.createAnalyser(); microphone=audioContext.createMediaStreamSource(stream); microphone.connect(analyser);
-            const data=new Uint8Array(analyser.frequencyBinCount);
-            const draw=()=>{ 
-                if(!isStreamActive) return; analyser.getByteFrequencyData(data); 
-                let sum=0; for(let i=0; i<data.length; i++) sum+=data[i]; const h=Math.min(100, (sum/data.length)*1.5);
-                audioLevelBar.style.height=`${h}%`; avatarRing.style.borderColor=`rgba(16,185,129,${h>10?Math.min(1,h/50):0})`;
-                animationFrameId=requestAnimationFrame(draw); 
-            }; draw();
-        }
+        // --- LOBBY, CHAT, CHROMA, UTILS (Standard) ---
+        function handleAvatarUpload(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = (e) => { userAvatarUrl = e.target.result; lobbyAvatarImg.src = userAvatarUrl; lobbyAvatarImg.classList.remove('hidden'); lobbyAvatarInitial.classList.add('hidden'); mainAvatarImg.src = userAvatarUrl; mainAvatarImg.classList.remove('hidden'); mainAvatarInitial.classList.add('hidden'); }; reader.readAsDataURL(input.files[0]); } }
+        function updateInitial(val) { if (!val) { lobbyAvatarInitial.textContent = "?"; mainAvatarInitial.textContent = "?"; } else { const c = val.charAt(0).toUpperCase(); lobbyAvatarInitial.textContent = c; mainAvatarInitial.textContent = c; } }
+        function joinMeeting() { const val = nameInput.value.trim(); if (val) userName = val; mainUserName.textContent = userName; lobbyScreen.classList.add('hidden-opacity'); initPeer(meetingIdInput.value.trim() || null); }
+        function toggleChat() { isChatOpen = !isChatOpen; if (isChatOpen) { chatSidebar.classList.remove('translate-x-full'); chatBadge.classList.add('hidden'); btnChat.classList.add('bg-indigo-100', 'text-indigo-600'); setTimeout(() => chatInput.focus(), 300); } else { chatSidebar.classList.add('translate-x-full'); btnChat.classList.remove('bg-indigo-100', 'text-indigo-600'); } }
+        btnChat.onclick = toggleChat; chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+        function handleFileSelect(input) { if (input.files[0]) { selectedFile = input.files[0]; filePreviewArea.classList.remove('hidden'); previewFileName.textContent = selectedFile.name; if(!isChatOpen) toggleChat(); } }
+        function clearFileSelection() { selectedFile = null; chatFileInput.value = ''; filePreviewArea.classList.add('hidden'); }
+        function sendMessage() { const text = chatInput.value.trim(); if (!text && !selectedFile) return; const data = { type: 'chat', sender: userName, text: text, time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}), file: null }; if (selectedFile) { const reader = new FileReader(); reader.onload = (e) => { data.file = { name: selectedFile.name, type: selectedFile.type, data: e.target.result }; finalizeSendMessage(data); }; reader.readAsDataURL(selectedFile); } else { finalizeSendMessage(data); } }
+        function finalizeSendMessage(data) { if (conn && conn.open) conn.send(data); else if(meetingId && !conn) addLog('Нет подключения к чату', 'warn'); renderMessage(data, true); chatInput.value = ''; clearFileSelection(); }
+        function receiveMessage(data) { renderMessage(data, false); if (!isChatOpen) chatBadge.classList.remove('hidden'); }
+        function renderMessage(data, isMe) { const msgDiv = document.createElement('div'); msgDiv.className = `flex flex-col ${isMe?'items-end':'items-start'} animate-in slide-in-from-bottom-2 duration-300`; const contentDiv = document.createElement('div'); contentDiv.className = `${isMe?'bg-indigo-600 text-white rounded-tr-none':'bg-white text-slate-800 border border-slate-200 rounded-tl-none'} rounded-2xl px-3 py-2 max-w-[90%] shadow-sm text-sm break-words`; if(!isMe) contentDiv.innerHTML += `<div class="text-[10px] text-indigo-500 mb-1 font-bold">${data.sender}</div>`; if(data.file) { const isImg = data.file.type.startsWith('image'); if(isImg) contentDiv.innerHTML += `<img src="${data.file.data}" class="rounded-lg max-h-32 object-cover cursor-pointer mb-1" onclick="window.open(this.src)">`; else contentDiv.innerHTML += `<a href="${data.file.data}" download="${data.file.name}" class="flex items-center gap-1 underline text-xs"><i data-lucide="file" class="w-3 h-3"></i> ${data.file.name}</a>`; } if(data.text) contentDiv.innerHTML += `<span>${data.text}</span>`; msgDiv.appendChild(contentDiv); msgDiv.innerHTML += `<div class="text-[9px] text-slate-400 mt-0.5 mx-1">${data.time}</div>`; chatMessages.appendChild(msgDiv); chatMessages.scrollTop = chatMessages.scrollHeight; lucide.createIcons(); }
+        function toggleChroma() { if (isScreenSharing) return; if(isRecording) stopRecording(); isChromaActive = !isChromaActive; if (isChromaActive) { btnChroma.classList.replace('text-slate-400','text-emerald-600'); btnChroma.classList.replace('bg-slate-200','bg-emerald-100'); chromaIndicator.classList.remove('hidden'); startChromaProcessing(); } else { btnChroma.classList.replace('text-emerald-600','text-slate-400'); btnChroma.classList.replace('bg-emerald-100','bg-slate-200'); chromaIndicator.classList.add('hidden'); stopChromaProcessing(); } }
+        function startChromaProcessing() { if (!localStream) return; const w = 320; const h = 180; chromaCanvas.width = w; chromaCanvas.height = h; const ctx = chromaCanvas.getContext('2d', { willReadFrequently: true }); const bgG = ctx.createLinearGradient(0,0,0,h); bgG.addColorStop(0,'#e2e8f0'); bgG.addColorStop(1,'#94a3b8'); const loop = () => { if (!isChromaActive) return; if (rawVideo.readyState === 0) { chromaAnimationFrameId = requestAnimationFrame(loop); return; } ctx.fillStyle = bgG; ctx.fillRect(0,0,w,h); ctx.drawImage(rawVideo, 0, 0, w, h); const frame = ctx.getImageData(0,0,w,h); const l = frame.data.length / 4; for (let i=0; i<l; i++) { const r=frame.data[i*4], g=frame.data[i*4+1], b=frame.data[i*4+2]; if (g>100 && g>r*1.4 && g>b*1.4) frame.data[i*4+3] = 0; } ctx.fillStyle = bgG; ctx.fillRect(0,0,w,h); ctx.putImageData(frame,0,0); chromaAnimationFrameId = requestAnimationFrame(loop); }; chromaAnimationFrameId = requestAnimationFrame(loop); const cs = chromaCanvas.captureStream(30); if(localStream.getAudioTracks().length) cs.addTrack(localStream.getAudioTracks()[0]); videoElement.srcObject = cs; chromaStream = cs; }
+        function stopChromaProcessing() { if(chromaAnimationFrameId) cancelAnimationFrame(chromaAnimationFrameId); if(localStream) videoElement.srcObject = localStream; chromaStream = null; }
+        function playShutterSound() { try{const c=new(window.AudioContext||window.webkitAudioContext);const o=c.createOscillator();const g=c.createGain();o.connect(g);g.connect(c.destination);o.type='square';o.frequency.setValueAtTime(800,c.currentTime);g.gain.setValueAtTime(0.1,c.currentTime);g.gain.exponentialRampToValueAtTime(0.01,c.currentTime+0.1);o.start();o.stop(c.currentTime+0.1);}catch(e){} }
+        async function takeSnapshot() { if(!videoElement.srcObject) return; playShutterSound(); flashOverlay.classList.add('flash-effect'); setTimeout(()=>flashOverlay.classList.remove('flash-effect'), 500); const c = document.createElement('canvas'); c.width = videoElement.videoWidth; c.height = videoElement.videoHeight; const ctx = c.getContext('2d'); ctx.save(); if(videoElement.classList.contains('video-mirror')){ ctx.translate(c.width,0); ctx.scale(-1,1); } if(currentFilter!=='none') ctx.filter = getComputedStyle(videoElement).filter; ctx.drawImage(videoElement,0,0); ctx.restore(); const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = `snap_${Date.now()}.png`; a.click(); }
+        filterSelect.addEventListener('change', (e) => { currentFilter = e.target.value; videoElement.className = `w-full h-full object-cover transition-all duration-300 ${!isScreenSharing?'video-mirror':'video-normal'} filter-${currentFilter}`; });
+        async function togglePip() { try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else if (document.pictureInPictureEnabled && videoElement.srcObject) await videoElement.requestPictureInPicture(); } catch(e){} }
+        function toggleRecording() { isRecording ? stopRecording() : startRecording(); }
+        function startRecording() { const s = isChromaActive ? chromaStream : (isScreenSharing ? screenStream : localStream); if(!s) return; recordedChunks=[]; mediaRecorder=new MediaRecorder(s); mediaRecorder.ondataavailable=e=>{if(e.data.size>0)recordedChunks.push(e.data)}; mediaRecorder.onstop=saveRecording; mediaRecorder.start(); isRecording=true; recordingIndicator.classList.remove('hidden'); btnRecord.classList.add('text-red-600','bg-red-100'); recordStartTime=Date.now(); recordInterval=setInterval(updateTimer,1000); }
+        function stopRecording() { if(mediaRecorder) mediaRecorder.stop(); isRecording=false; recordingIndicator.classList.add('hidden'); btnRecord.classList.remove('text-red-600','bg-red-100'); clearInterval(recordInterval); }
+        function saveRecording() { const b=new Blob(recordedChunks,{type:'video/webm'}); if(b.size===0)return; const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=`rec_${Date.now()}.webm`; a.click(); }
+        function updateTimer() { const d=Date.now()-recordStartTime; const m=Math.floor(d/60000); const s=Math.floor((d%60000)/1000); recTimer.textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
+        function stopConference() { if(isRecording) stopRecording(); if(isChromaActive) stopChromaProcessing(); if(isScreenSharing) stopScreenShare(); if(localStream) localStream.getTracks().forEach(t=>t.stop()); if(call) call.close(); stopAudioVisualizer(); localStream=null; videoElement.srcObject=null; isStreamActive=false; deviceSettings.classList.add('hidden'); deviceSettings.classList.remove('grid'); updateUIState(false); }
+        async function toggleScreenShare() { if(isScreenSharing) { stopScreenShare(true); return; } try { screenStream=await navigator.mediaDevices.getDisplayMedia({video:true}); isScreenSharing=true; videoElement.srcObject=screenStream; videoElement.classList.replace('video-mirror','video-normal'); screenStream.getVideoTracks()[0].onended=()=>stopScreenShare(true); updateControlButtons(); } catch(e){ handleError(e); } }
+        function stopScreenShare(restore) { if(screenStream) screenStream.getTracks().forEach(t=>t.stop()); isScreenSharing=false; videoElement.classList.replace('video-normal','video-mirror'); if(restore && localStream) videoElement.srcObject=localStream; updateControlButtons(); }
+        function initAudioVisualizer(stream) { if(!stream.getAudioTracks().length) return; if(audioContext) audioContext.close(); audioContext=new(window.AudioContext||window.webkitAudioContext)(); analyser=audioContext.createAnalyser(); microphone=audioContext.createMediaStreamSource(stream); microphone.connect(analyser); const data=new Uint8Array(analyser.frequencyBinCount); const draw=()=>{ if(!isStreamActive) return; analyser.getByteFrequencyData(data); let sum=0; for(let i=0; i<data.length; i++) sum+=data[i]; const h=Math.min(100, (sum/data.length)*1.5); audioLevelBar.style.height=`${h}%`; avatarRing.style.borderColor=`rgba(16,185,129,${h>10?Math.min(1,h/50):0})`; animationFrameId=requestAnimationFrame(draw); }; draw(); }
         function stopAudioVisualizer() { if(animationFrameId) cancelAnimationFrame(animationFrameId); if(audioContext) audioContext.close(); audioLevelBar.style.height='0%'; }
-
         function toggleAudio() { if(localStream) { const t=localStream.getAudioTracks()[0]; if(t) { isAudioEnabled=!isAudioEnabled; t.enabled=isAudioEnabled; updateControlButtons(); } } }
-        function toggleVideo() { 
-            if(localStream) { const t=localStream.getVideoTracks()[0]; if(t) { isVideoEnabled=!isVideoEnabled; t.enabled=isVideoEnabled; if(isVideoEnabled){videoElement.classList.remove('hidden'); placeholder.classList.add('hidden');} else {videoElement.classList.add('hidden'); placeholder.classList.remove('hidden');} updateControlButtons(); } } 
-        }
-
-        function updateUIState(active) {
-            const btns = [btnMic, btnCam, btnRecord, btnPip, btnSnapshot, btnChroma];
-            if(active) { 
-                btnPower.classList.replace('bg-emerald-600','bg-red-600'); statusIndicator.innerHTML='<div class="w-2 h-2 rounded-full bg-current animate-pulse"></div>В эфире';
-                btns.forEach(b=>{b.disabled=false; b.classList.remove('opacity-50','cursor-not-allowed');});
-            } else {
-                btnPower.classList.replace('bg-red-600','bg-emerald-600'); statusIndicator.innerHTML='<div class="w-2 h-2 rounded-full bg-slate-400"></div>Ожидание';
-                btns.forEach(b=>{b.disabled=true; b.classList.add('opacity-50','cursor-not-allowed');});
-                videoElement.classList.add('hidden'); placeholder.classList.remove('hidden');
-            }
-            updateControlButtons();
-        }
-        function updateControlButtons() {
-            if(isAudioEnabled) { btnMic.innerHTML='<i data-lucide="mic" class="w-5 h-5"></i>'; muteOverlay.classList.add('hidden'); } else { btnMic.innerHTML='<i data-lucide="mic-off" class="w-5 h-5"></i>'; btnMic.classList.add('text-red-600'); muteOverlay.classList.remove('hidden'); }
-            if(isVideoEnabled) btnCam.innerHTML='<i data-lucide="video" class="w-5 h-5"></i>'; else { btnCam.innerHTML='<i data-lucide="video-off" class="w-5 h-5"></i>'; btnCam.classList.add('text-red-600'); }
-            lucide.createIcons();
-        }
+        function toggleVideo() { if(localStream) { const t=localStream.getVideoTracks()[0]; if(t) { isVideoEnabled=!isVideoEnabled; t.enabled=isVideoEnabled; if(isVideoEnabled){videoElement.classList.remove('hidden'); placeholder.classList.add('hidden');} else {videoElement.classList.add('hidden'); placeholder.classList.remove('hidden');} updateControlButtons(); } } }
+        function updateUIState(active) { const btns = [btnMic, btnCam, btnRecord, btnPip, btnSnapshot, btnChroma]; if(active) { btnPower.classList.replace('bg-emerald-600','bg-red-600'); statusIndicator.innerHTML='<div class="w-2 h-2 rounded-full bg-current animate-pulse"></div>В эфире'; btns.forEach(b=>{b.disabled=false; b.classList.remove('opacity-50','cursor-not-allowed');}); } else { btnPower.classList.replace('bg-red-600','bg-emerald-600'); statusIndicator.innerHTML='<div class="w-2 h-2 rounded-full bg-slate-400"></div>Ожидание'; btns.forEach(b=>{b.disabled=true; b.classList.add('opacity-50','cursor-not-allowed');}); videoElement.classList.add('hidden'); placeholder.classList.remove('hidden'); } updateControlButtons(); }
+        function updateControlButtons() { if(isAudioEnabled) { btnMic.innerHTML='<i data-lucide="mic" class="w-5 h-5"></i>'; muteOverlay.classList.add('hidden'); } else { btnMic.innerHTML='<i data-lucide="mic-off" class="w-5 h-5"></i>'; btnMic.classList.add('text-red-600'); muteOverlay.classList.remove('hidden'); } if(isVideoEnabled) btnCam.innerHTML='<i data-lucide="video" class="w-5 h-5"></i>'; else { btnCam.innerHTML='<i data-lucide="video-off" class="w-5 h-5"></i>'; btnCam.classList.add('text-red-600'); } lucide.createIcons(); }
         function handleError(e) { errorMessage.innerText=e.message||"Error"; errorOverlay.classList.remove('hidden'); }
         function hideError() { errorOverlay.classList.add('hidden'); }
 
