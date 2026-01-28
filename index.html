@@ -394,10 +394,20 @@
 
         document.getElementById('clearLogs').onclick = () => logContainer.innerHTML = '<div class="text-slate-600 italic">Журнал очищен</div>';
 
-        // --- PEERJS ---
+        // --- PEERJS (Fix: STUN Servers + Autoplay) ---
         function initPeer(targetId = null) {
             addLog('Инициализация P2P...', 'peer');
-            peer = new Peer();
+            // Конфигурация с STUN серверами
+            const peerConfig = {
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            };
+            peer = new Peer(peerConfig);
+            
             peer.on('open', (id) => {
                 meetingId = id;
                 addLog(`ID: ${id}`, 'peer');
@@ -439,12 +449,26 @@
         function handleCallStream(callSession) {
             call = callSession;
             call.on('stream', (remoteStream) => {
-                addLog('Есть контакт!', 'peer');
+                // Избегаем повторного присваивания, если поток тот же
+                if (remoteVideo.srcObject === remoteStream) return;
+
+                addLog('Получен удаленный поток', 'peer');
                 remoteVideo.srcObject = remoteStream;
+                
+                // Принудительный play для обхода блокировок браузера
+                remoteVideo.play().catch(e => addLog(`Ошибка автоплея: ${e.message}`, 'warn'));
+
                 remoteVideoContainer.classList.remove('hidden');
+                remotePlaceholder.classList.add('hidden');
                 videoGrid.classList.remove('video-grid-1');
                 videoGrid.classList.add('video-grid-2');
             });
+            
+            // Логируем состояние ICE для отладки
+            call.peerConnection.oniceconnectionstatechange = () => {
+                addLog(`P2P статус: ${call.peerConnection.iceConnectionState}`, 'peer');
+            };
+
             call.on('close', () => {
                 addLog('Отключено', 'peer');
                 remoteVideoContainer.classList.add('hidden');
@@ -583,7 +607,7 @@
 
         // --- CORE ---
         async function getConnectedDevices() { 
-            const devs=await navigator.mediaDevices.enumerateDevices(); audioSelect.innerHTML='<option disabled>Микрофон...</option>'; videoSelect.innerHTML='<option disabled>Камера...</option>';
+            const devs=await navigator.mediaDevices.enumerateDevices(); audioSelect.innerHTML='<option disabled>Микрофоны...</option>'; videoSelect.innerHTML='<option disabled>Камера...</option>';
             devs.forEach(d=>{ const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||d.kind; if(d.kind==='audioinput') audioSelect.appendChild(o); else if(d.kind==='videoinput') videoSelect.appendChild(o); });
             deviceSettings.classList.remove('hidden'); deviceSettings.classList.add('grid');
         }
