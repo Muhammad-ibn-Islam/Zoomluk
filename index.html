@@ -157,7 +157,7 @@
                 <div id="remoteVideoContainer" class="relative w-full h-full bg-slate-800 rounded sm:rounded-lg overflow-hidden flex items-center justify-center hidden">
                     <video id="remoteVideo" class="w-full h-full object-cover" autoplay playsinline></video>
                     
-                    <!-- Кнопка ручного запуска для обхода блокировки автоплея -->
+                    <!-- Кнопка ручного запуска -->
                     <button id="btnPlayRemote" onclick="playRemoteVideo()" class="hidden absolute inset-0 z-20 flex items-center justify-center bg-black/50 text-white font-bold hover:bg-black/70 transition-colors">
                         <div class="bg-indigo-600 p-4 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
                             <i data-lucide="play" class="w-6 h-6 fill-current"></i> 
@@ -394,13 +394,15 @@
 
         document.getElementById('clearLogs').onclick = () => logContainer.innerHTML = '<div class="text-slate-600 italic">Журнал очищен</div>';
 
-        // --- PEERJS ---
-        function initPeer(targetId = null) {
-            addLog('Инициализация P2P...', 'peer');
+        // --- PEERJS FIX (Retry + Cleanup) ---
+        function initPeer(targetId = null, retryCount = 0) {
+            if (peer && !peer.destroyed) peer.destroy();
+            addLog(`Инициализация P2P${retryCount>0?` (Попытка ${retryCount+1})`:''}...`, 'peer');
             const peerConfig = {
+                debug: 1,
                 config: { iceServers: [ { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' } ] }
             };
-            peer = new Peer(peerConfig);
+            try { peer = new Peer(null, peerConfig); } catch(e) { handleError(e); return; }
             peer.on('open', (id) => {
                 meetingId = id; addLog(`ID: ${id}`, 'peer');
                 displayMeetingId.innerText = `ID: ${id}`; btnMeetingInfo.classList.remove('hidden');
@@ -419,7 +421,12 @@
                 }
                 handleCallStream(incomingCall);
             });
-            peer.on('error', (err) => { addLog(`Peer Error: ${err.type}`, 'err'); if (err.type === 'peer-unavailable') alert('ID не найден.'); });
+            peer.on('error', (err) => { 
+                addLog(`Peer Error: ${err.type}`, 'err');
+                if (['server-error', 'socket-error', 'network'].includes(err.type) && retryCount < 3) {
+                    setTimeout(() => initPeer(targetId, retryCount + 1), 2000);
+                } else if (err.type === 'peer-unavailable') alert('ID не найден.');
+            });
         }
 
         function connectToPeer(targetId) {
@@ -443,7 +450,7 @@
                 if (remoteVideo.srcObject === remoteStream) return;
                 addLog('Получен удаленный поток', 'peer');
                 remoteVideo.srcObject = remoteStream;
-                playRemoteVideo(); // Пытаемся запустить
+                playRemoteVideo(); 
                 remoteVideoContainer.classList.remove('hidden');
                 remotePlaceholder.classList.add('hidden');
                 videoGrid.classList.remove('video-grid-1'); videoGrid.classList.add('video-grid-2');
@@ -457,12 +464,8 @@
         }
 
         function playRemoteVideo() {
-            remoteVideo.play().then(() => {
-                btnPlayRemote.classList.add('hidden');
-            }).catch(e => {
-                addLog(`Автоплей блокирован: ${e.message}`, 'warn');
-                btnPlayRemote.classList.remove('hidden'); // Показываем кнопку
-            });
+            remoteVideo.play().then(() => { btnPlayRemote.classList.add('hidden'); })
+            .catch(e => { addLog(`Автоплей: ${e.message}`, 'warn'); btnPlayRemote.classList.remove('hidden'); });
         }
 
         function handleDataConnection(connection) {
@@ -477,34 +480,17 @@
             });
         }
 
-        // --- DEVICES FIX ---
+        // --- DEVICES FIX (Keep Selection) ---
         async function getConnectedDevices() { 
             const devs = await navigator.mediaDevices.enumerateDevices();
-            // Сохраняем текущий выбор
-            const currentAudio = audioSelect.value;
-            const currentVideo = videoSelect.value;
-
-            // Очищаем, но не полностью (оставляем заголовок)
-            audioSelect.innerHTML = '<option value="" disabled>Микрофоны...</option>'; 
-            videoSelect.innerHTML = '<option value="" disabled>Камеры...</option>';
-            
-            devs.forEach(d=>{ 
-                const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||d.kind; 
-                if(d.kind==='audioinput') audioSelect.appendChild(o); 
-                else if(d.kind==='videoinput') videoSelect.appendChild(o); 
-            });
-
-            // Восстанавливаем выбор или выбираем активный трек
+            const curAudio = audioSelect.value; const curVideo = videoSelect.value;
+            audioSelect.innerHTML='<option value="" disabled>Микрофоны...</option>'; videoSelect.innerHTML='<option value="" disabled>Камеры...</option>';
+            devs.forEach(d=>{ const o=document.createElement('option'); o.value=d.deviceId; o.text=d.label||d.kind; if(d.kind==='audioinput') audioSelect.appendChild(o); else if(d.kind==='videoinput') videoSelect.appendChild(o); });
             if (localStream) {
-                const at = localStream.getAudioTracks()[0];
-                const vt = localStream.getVideoTracks()[0];
-                if (at && at.getSettings().deviceId) audioSelect.value = at.getSettings().deviceId;
-                else if (currentAudio) audioSelect.value = currentAudio;
-
-                if (vt && vt.getSettings().deviceId) videoSelect.value = vt.getSettings().deviceId;
-                else if (currentVideo) videoSelect.value = currentVideo;
+                const at = localStream.getAudioTracks()[0]; const vt = localStream.getVideoTracks()[0];
+                if (at && at.getSettings().deviceId) audioSelect.value = at.getSettings().deviceId; else if(curAudio) audioSelect.value = curAudio;
+                if (vt && vt.getSettings().deviceId) videoSelect.value = vt.getSettings().deviceId; else if(curVideo) videoSelect.value = curVideo;
             }
-            
             deviceSettings.classList.remove('hidden'); deviceSettings.classList.add('grid');
         }
         
@@ -531,7 +517,7 @@
         // --- LOBBY, CHAT, CHROMA, UTILS (Standard) ---
         function handleAvatarUpload(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = (e) => { userAvatarUrl = e.target.result; lobbyAvatarImg.src = userAvatarUrl; lobbyAvatarImg.classList.remove('hidden'); lobbyAvatarInitial.classList.add('hidden'); mainAvatarImg.src = userAvatarUrl; mainAvatarImg.classList.remove('hidden'); mainAvatarInitial.classList.add('hidden'); }; reader.readAsDataURL(input.files[0]); } }
         function updateInitial(val) { if (!val) { lobbyAvatarInitial.textContent = "?"; mainAvatarInitial.textContent = "?"; } else { const c = val.charAt(0).toUpperCase(); lobbyAvatarInitial.textContent = c; mainAvatarInitial.textContent = c; } }
-        function joinMeeting() { const val = nameInput.value.trim(); if (val) userName = val; mainUserName.textContent = userName; lobbyScreen.classList.add('hidden-opacity'); initPeer(meetingIdInput.value.trim() || null); }
+        function joinMeeting() { const val = nameInput.value.trim(); if (val) userName = val; mainUserName.textContent = userName; lobbyScreen.classList.add('hidden-opacity'); initPeer(meetingIdInput.value.trim() || null, 0); }
         function toggleChat() { isChatOpen = !isChatOpen; if (isChatOpen) { chatSidebar.classList.remove('translate-x-full'); chatBadge.classList.add('hidden'); btnChat.classList.add('bg-indigo-100', 'text-indigo-600'); setTimeout(() => chatInput.focus(), 300); } else { chatSidebar.classList.add('translate-x-full'); btnChat.classList.remove('bg-indigo-100', 'text-indigo-600'); } }
         btnChat.onclick = toggleChat; chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
         function handleFileSelect(input) { if (input.files[0]) { selectedFile = input.files[0]; filePreviewArea.classList.remove('hidden'); previewFileName.textContent = selectedFile.name; if(!isChatOpen) toggleChat(); } }
